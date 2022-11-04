@@ -1,59 +1,77 @@
 <?
-include('db.php');
+// include('db.php');
+require 'init.php';
 header('Access-Control-Allow-Origin: *');                 // Allow Access from any origin
 header('Content-Type: application/json; charset=UTF-8');  // JSON payload (not HTML)
 
 $work = $_GET['work'];
-// echo "work " . $work;
-
-$act = $_GET['act'];
 $scene = $_GET['scene'];
+$act = $_GET['act'];
 
-if (isset($work)) {
-    // echo "work " . $work;
+echo "--work " . $work . "--- <br>";
+echo "<br>";
+echo "scene " . $scene . "--- <br>";
+echo "<br>";
+echo "act " . $act . "--- <br>";
 
-    //WORK IS SET - echo scene 
-    // echo "inside if<br>";
-    // $sql = "SELECT * FROM `shakespeare_works` WHERE `work_id` = '$work'";
+//ACT & SCENE IS SET 
+if (isset($work) && isset($scene) && isset($act) ) {
+    // $sql = "SELECT * FROM shakespeare_paragraphs JOIN shakespeare_scene_locations WHERE `work_id` = `scene_work_id`";
+    // $sql = "SELECT * FROM shakespeare_paragraphs JOIN shakespeare_scene_locations ON par_work_id = scene_par_id WHERE par_work_id = $work";
 
+    $sql = "SELECT * FROM shakespeare_paragraphs INNER JOIN shakespeare_scene_locations ON scene_work_id = par_work_id AND scene_act = par_act AND scene_scene = par_scene WHERE par_work_id = '$work' AND par_act = '$act' AND par_scene = '$scene'";
+
+    echo $sql;
+    // scene and act ids are also the same 
+
+    // $sql = "SELECT * FROM `shakespeare_scene_locations` WHERE `scene_work_id` = '$work'";
+}
+
+//WORK IS SET 
+else if (isset($work) && isset($scene) && isset($act)) {
+    
     $sql = "SELECT * FROM `shakespeare_scene_locations` WHERE `scene_work_id` = '$work'";
-    // echo $sql;
 
-    // $sql = "SELECT * FROM shakespeare_works JOIN shakespeare_scene_locations WHERE `work_id` = `scene_work_id`";
-
-    //ACT & SCENE IS SET - echo scene 
-    if (isset($work) && isset($act) && isset($scene)) {
-        $sql = "SELECT * FROM shakespeare_works JOIN shakespeare_scene_locations WHERE `work_id` = `scene_work_id`";
-        // $sql = "SELECT * FROM `shakespeare_scene_locations` WHERE `scene_work_id` = '$work'";
-        // echo "act" . $sql;
-
-
-    }
-
-    // if (isset($scene)) {
-    //     $sql = "SELECT * FROM shakespeare_works JOIN shakespeare_scene_locations WHERE `work_id` = `scene_work_id`";
-    // }
-
-    // $sql2 = "SELECT * FROM `shakespeare_scene_locations` WHERE `scene_work_id` = '12night'";
-    //$sql = "SELECT * FROM `shakespeare_works`";
 }
 else {
     // NO WORK
     $sql = "SELECT * FROM `shakespeare_works`";
-    // echo "no work" . $sql;
 
 }
 
-if (mysqli_connect_errno($con)) {
+if (mysqli_connect_errno($mysqli)) {
     echo "Failed to connect to MySQL: " . mysqli_connect_error();
 }
-    $query=mysqli_query($con, $sql);
+    $query=mysqli_query($mysqli, $sql);
+
     echo "[";
+
+    //echo "LINE 44";
+
     while($data = mysqli_fetch_array($query)){
 
+      //  echo "LINE 48";
 
-        if (isset($work)){
-            // echo " in line 55";
+        // if (isset($work) && isset($act) && isset($scene)) {
+        if (isset($act)) {
+
+            // echo "LINE 53";
+
+            $scene_location = $data['scene_location'];
+            $par_id = $data['par_id'];
+            $par_act = $data['par_act'];
+            $par_scene = $data['par_scene'];
+            $par_number = $data['par_number'];
+            $par_char_id = $data['par_char_id'];
+            $par_text = $data['par_text'];
+
+            //echo response_para($scene_location, $par_id, $par_act, $par_scene, $par_number, $par_char_id, $par_text);
+            $json_outt .=  response_para($scene_location, $par_id, $par_act, $par_scene, $par_number, $par_char_id, $par_text);
+            
+        }
+
+        else if (isset($work)){
+            echo " in line 55";
 
             $scene_id = $data['scene_id'];
             $scene_work_id = $data['scene_work_id'];
@@ -65,6 +83,7 @@ if (mysqli_connect_errno($con)) {
             $json_outt .=  response_scene($scene_id, $scene_work_id, $scene_act, $scene_scene, $scene_location);
             
         }
+
         else{
             // echo " in line 66";
 
@@ -77,26 +96,29 @@ if (mysqli_connect_errno($con)) {
             //echo response($work_id, $work_title, $work_long_title, $work_year, $work_genre);
 
             $json_outt .=  response($work_id, $work_title, $work_long_title, $work_year, $work_genre);
-            
+        
         }
     }
     echo substr_replace($json_outt ,"",-1);
 
     echo "]";
 
-function response($work_id, $work_title, $work_long_title, $work_year, $work_genre){
-	$response['work_id'] = $work_id;
-	$response['work_title'] = $work_title;
-	$response['work_long_title'] = $work_long_title;
-	$response['work_year'] = $work_year;
-    $response['work_genre'] = $work_genre;
+    function response_para($scene_location, $par_id, $par_act, $par_scene, $par_number, $par_char_id, $par_text){
 
-	$json_response = json_encode($response);
-    $json_output =  $json_response . ",";
-	//echo $json_response;
+        $response_para['scene_location'] = $scene_location;
+        $response_para['par_id'] = $par_id;
+        $response_para['par_act'] = $par_act;
+        $response_para['par_scene'] = $par_scene;
+        $response_para['par_number'] = $par_number;
+        $response_para['par_char_id'] = $par_char_id;
+        $response_para['par_text'] = $par_text;
 
-    return $json_output;
-}
+        $json_response = json_encode($response_para);
+        $json_output =  $json_response . ",";
+        //echo $json_response;
+    
+        return $json_output;
+    }
 
 function response_scene($scene_id, $scene_work_id, $scene_act, $scene_scene, $scene_location){
     $response_scene['scene_id'] = $scene_id;
@@ -114,7 +136,19 @@ function response_scene($scene_id, $scene_work_id, $scene_act, $scene_scene, $sc
     return $json_output;
 }
 
+function response($work_id, $work_title, $work_long_title, $work_year, $work_genre){
+	$response['work_id'] = $work_id;
+	$response['work_title'] = $work_title;
+	$response['work_long_title'] = $work_long_title;
+	$response['work_year'] = $work_year;
+    $response['work_genre'] = $work_genre;
 
+	$json_response = json_encode($response);
+    $json_output =  $json_response . ",";
+	//echo $json_response;
+
+    return $json_output;
+}
 
 ?>
 
